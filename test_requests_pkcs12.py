@@ -22,8 +22,25 @@ import cryptography.hazmat.primitives.hashes
 import cryptography.hazmat.primitives.serialization.pkcs12
 import cryptography.x509.oid
 import datetime
-from requests_pkcs12 import _execute_test_case
+from requests_pkcs12 import _create_test_cert_pkcs12, get
 
+
+def _execute_test_case(test_case_name, key, cert, pkcs12_password_for_creation, pkcs12_password, expected_status_code, expected_exception_message):
+    print(f"Testing {test_case_name}")
+    try:
+        pkcs12_data = _create_test_cert_pkcs12(key, cert, pkcs12_password_for_creation)
+        response = get(
+            'https://example.com/',
+            pkcs12_data=pkcs12_data,
+            pkcs12_password=pkcs12_password
+        )
+        if response.status_code != expected_status_code:
+            raise Exception('Unexpected response: {response!r}'.format(**locals()))
+        if expected_exception_message is not None:
+            raise Exception('Missing expected exception: {expected_exception_message!r}'.format(**locals()))
+    except ValueError as e:
+        if expected_exception_message is None or str(e) != expected_exception_message:
+            raise(e)
 
 def test_requests_pkcs12():
     key = cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(public_exponent=65537, key_size=4096)
